@@ -95,14 +95,14 @@ Office.onReady(function() {
 /**
  * Load user info from existing storage
  */
-function loadAndDisplayUserInfo() {
+async function loadAndDisplayUserInfo() {
     // Use your existing storage keys
     let user_info_str = localStorage.getItem('lilly_user_info') || 
                         Office.context.roamingSettings.get('lilly_user_info');
     
     if (!user_info_str) {
         console.log("No user info found - fetching from Graph API...");
-        fetchFromGraphAPI();
+        await fetchFromGraphAPI();
         return;
     }
     
@@ -160,7 +160,9 @@ async function fetchFromGraphAPI() {
         // GitHub Pages deployment - always use CATS backend
         const API_BASE_URL = 'https://lilly-signature-addin.dc.lilly.com';
         
-        const response = await fetch(`${API_BASE_URL}/signature?email=${encodeURIComponent(userEmail)}`);
+        const response = await fetch(`${API_BASE_URL}/signature?email=${encodeURIComponent(userEmail)}`, {
+            credentials: 'include' // Send authentication cookies (no Content-Type needed for GET)
+        });
         
         if (!response.ok) throw new Error('Failed to fetch');
         
