@@ -2,8 +2,25 @@
 // Licensed under the MIT License.
 // Updated to match autorunshared.js templates with Graph API field names
 
-// NOTE: LOCATION_MAP is already declared in autorunshared-p.js
-// This file uses the global LOCATION_MAP variable from that file
+// Location code mapping for Lilly facilities
+const LOCATION_MAP = {
+  "MC": "Lilly Corporate Center, Indianapolis, IN 46285 USA",
+  "IC": "Lilly Tech Center South, Indianapolis, IN 46221 USA",
+  "KY": "Lilly Tech Center North, Indianapolis, IN 46221 USA",
+  "LEP": "Lilly LEAP Lebanon Manufacturing, Lebanon, IN 46052 USA",
+  "LP1": "Lebanon Plant Site, Lebanon, IN 46052 USA",
+  "LP2": "Lebanon Plant Site 2, Lebanon, IN 46052 USA",
+  "IMC": "ImClone Systems, Branchburg, NJ 08853 USA",
+  "GUR": "Warehouse, Gurnee, IL 60031 USA",
+  "BOS": "Lilly Seaport Innovation Center, Boston, MA USA",
+  "CAM": "Lilly Cambridge Office, Cambridge, MA USA",
+  "CON": "Lilly Manufacturing Concord, Concord, NC USA",
+  "HOM": "Works from Home",
+  "CA": "Eli Lilly Canada Inc., Toronto, Canada",
+  "LIM": "Lilly Manufacturing Limerick, Limerick, Ireland",
+  "CK": "Kinsale Manufacturing Operations, Kinsale, Ireland",
+  "FR": "Lilly France Manufacturing, Fegersheim, France"
+};
 
 // Function to get formatted location from office location code
 function getLocationFromCode(officeLocationCode) {
