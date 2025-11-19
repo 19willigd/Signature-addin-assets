@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lilly Signature Manager</title>
+    <link rel="stylesheet" href="assignsignature-p.css">
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <img src="https://lilly-signature-addin.dc.lilly.com/assets/final_logo.png" alt="Lilly Logo" class="app-logo">
+            <h1 class="app-title">Signature Manager</h1>
+        </div>
+    </header>
+
+    <main class="app-main">
+        <!-- SECTION 1: Your Information -->
+        <section class="info-section">
+            <div class="section-title">
+                <svg class="section-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                </svg>
+                Your Information
+            </div>
+            <p class="section-description">Information from your Lilly profile</p>
+
+            <!-- Info Grid - UPDATED IDs -->
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-label">Name</div>
+                    <div class="info-value" id="display_name_readonly">Loading...</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">Email</div>
+                    <div class="info-value" id="email_readonly">Loading...</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">Job Title</div>
+                    <div class="info-value" id="job_title_readonly">Loading...</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">Department</div>
+                    <div class="info-value" id="department_readonly">Loading...</div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">
+                        Office Phone
+                        <a href="https://wd5.myworkday.com/lilly/d/inst/247$84838/rel-task/2997$4509.htmld" target="_blank" class="info-link-icon" title="Update in Workday">
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <div class="info-value" id="office_phone_readonly">Loading...</div>
+                    <div class="info-action" id="officePhoneAction" style="display: none;">
+                        <a href="https://wd5.myworkday.com/lilly/d/inst/247$84838/rel-task/2997$4509.htmld" target="_blank">Update in Workday →</a>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">
+                        Mobile Phone
+                        <a href="https://wd5.myworkday.com/lilly/d/inst/247$84838/rel-task/2997$4509.htmld" target="_blank" class="info-link-icon" title="Update in Workday">
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <div class="info-value" id="mobile_readonly">Loading...</div>
+                    <div class="info-action" id="mobilePhoneAction" style="display: none;">
+                        <a href="https://wd5.myworkday.com/lilly/d/inst/247$84838/rel-task/2997$4509.htmld" target="_blank">Update in Workday →</a>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-label">
+                        Location
+                        <a href="https://wd5.myworkday.com/lilly/d/task/2997$13353.htmld" target="_blank" class="info-link-icon" title="Update in Workday">
+                            <svg viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"/>
+                                <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <div class="info-value" id="location_readonly">Loading...</div>
+                    <div class="info-action" id="locationAction" style="display: none;">
+                        <a href="https://wd5.myworkday.com/lilly/d/task/2997$13353.htmld" target="_blank">Update in Workday →</a>
+                    </div>
+                </div>
+
+                <!-- Company Website - Read-only for employees, Editable for contractors -->
+                <div class="info-card" id="websiteCard">
+                    <div class="info-label">
+                        Company Website
+                    </div>
+                    <div class="info-value" id="website_readonly">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Workday Sync Info -->
+            <div class="info-note">
+                <svg class="info-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <span>Changes in Workday may take up to 24 hours to sync. To update your job title, please contact HR.</span>
+            </div>
+
+            <!-- Editable Fields -->
+            <div class="editable-fields">
+                <div class="form-group">
+                    <label for="pronouns">
+                        <svg class="label-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                        </svg>
+                        Pronouns (Optional)
+                    </label>
+                    <select id="pronouns" class="form-select" onchange="updatePreview()">
+                        <option value="">Select pronouns</option>
+                        <option value="He/Him">He/Him</option>
+                        <option value="He/Him/They/Them">He/Him/They/Them</option>
+                        <option value="She/Her">She/Her</option>
+                        <option value="She/Her/They/Them">She/Her/They/Them</option>
+                        <option value="They/Them">They/Them</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="pronunciation">
+                        <svg class="label-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path d="M2 5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H9l-3 3v-3H4a2 2 0 01-2-2V5z"/>
+                            <path d="M15 7v2a4 4 0 01-4 4H9.828l-1.766 1.767c.28.149.599.233.938.233h2l3 3v-3h2a2 2 0 002-2V9a2 2 0 00-2-2h-1z"/>
+                        </svg>
+                        Name Pronunciation (Optional)
+                    </label>
+                    <input 
+                        type="text" 
+                        id="pronunciation" 
+                        class="form-input" 
+                        placeholder="e.g., FIR-st-name LAST-name"
+                        oninput="updatePreview()"
+                    >
+                    <div class="field-hint">Help others pronounce your name correctly</div>
+                </div>
+
+                <!-- Company Website - Only visible for contractors -->
+                <div class="form-group" id="websiteEditField" style="display: none;">
+                    <label for="company_website">
+                        <svg class="label-icon" viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path fill-rule="evenodd" d="M4.083 9h1.946c.089-1.546.383-2.97.837-4.118A6.004 6.004 0 004.083 9zM10 2a8 8 0 100 16 8 8 0 000-16zm0 2c-.076 0-.232.032-.465.262-.238.234-.497.623-.737 1.182-.389.907-.673 2.142-.766 3.556h3.936c-.093-1.414-.377-2.649-.766-3.556-.24-.56-.5-.948-.737-1.182C10.232 4.032 10.076 4 10 4zm3.971 5c-.089-1.546-.383-2.97-.837-4.118A6.004 6.004 0 0115.917 9h-1.946zm-2.003 2H8.032c.093 1.414.377 2.649.766 3.556.24.56.5.948.737 1.182.233.23.389.262.465.262.076 0 .232-.032.465-.262.238-.234.498-.623.737-1.182.389-.907.673-2.142.766-3.556zm1.166 4.118c.454-1.147.748-2.572.837-4.118h1.946a6.004 6.004 0 01-2.783 4.118zm-6.268 0C6.412 13.97 6.118 12.546 6.03 11H4.083a6.004 6.004 0 002.783 4.118z" clip-rule="evenodd"/>
+                        </svg>
+                        Company Website
+                    </label>
+                    <input 
+                        type="url" 
+                        id="company_website" 
+                        class="form-input" 
+                        placeholder="e.g., www.accenture.com"
+                        oninput="updatePreview()"
+                    >
+                    <div class="field-hint">Enter your employer's website URL</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 2: Choose Your Signature Style (Employees Only) -->
+        <section class="template-section" id="templateSection">
+            <div class="section-title">
+                <svg class="section-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4 2a2 2 0 00-2 2v11a3 3 0 106 0V4a2 2 0 00-2-2H4zm1 14a1 1 0 100-2 1 1 0 000 2zm5-1.757l4.9-4.9a2 2 0 000-2.828L13.485 5.1a2 2 0 00-2.828 0L10 5.757v8.486zM16 18H9.071l6-6H16a2 2 0 012 2v2a2 2 0 01-2 2z" clip-rule="evenodd"/>
+                </svg>
+                Choose Your Signature Style
+            </div>
+            <p class="section-description">Select how you want your signature to appear</p>
+
+            <!-- Template Options (will be populated by JS) -->
+            <div class="templates-grid" id="templateOptions">
+                <!-- Templates injected by JavaScript -->
+            </div>
+        </section>
+
+        <!-- SECTION 3: Preview -->
+        <section class="template-previews">
+            <div class="section-header-row">
+                <div class="section-title">
+                    <svg class="section-icon" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/>
+                        <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Your Signature
+                </div>
+                <button class="glass-copy-btn" id="copyButton" onclick="copySignature()" title="Copy to clipboard">
+                    <svg viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z"/>
+                        <path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z"/>
+                    </svg>
+                    Copy
+                </button>
+            </div>
+            
+            <div class="glass-preview-container">
+                <div class="template-preview-large" id="signaturePreview">
+                    <!-- Signature preview will be injected here -->
+                </div>
+            </div>
+
+            <div class="glass-tip">
+                <svg class="tip-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                </svg>
+                <span>Copy and paste into <strong>Outlook Settings → Signatures</strong> as a backup in case automatic insertion doesn't work</span>
+            </div>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <button class="btn btn-primary" id="saveButton" onclick="saveSignature()">
+                <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M7.707 10.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 11.586V6h5a2 2 0 012 2v7a2 2 0 01-2 2H4a2 2 0 01-2-2V8a2 2 0 012-2h5v5.586l-1.293-1.293zM9 4a1 1 0 012 0v2H9V4z"/>
+                </svg>
+                <span class="btn-text">Save Signature</span>
+            </button>
+            
+            <button class="btn btn-secondary" id="clearCacheButton" onclick="clearCache()" style="margin-left: 10px; display: none;">
+                <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span class="btn-text">Clear Cache & Reload</span>
+            </button>
+        </div>
+
+        <!-- Status Message (Success/Error) - Positioned near save button -->
+        <div id="statusMessage" class="status-message" style="display: none;">
+            <svg class="status-icon" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+            </svg>
+            <span id="statusText">Signature saved successfully!</span>
+        </div>
+
+        <!-- Footer Links -->
+        <div class="footer-links" style="display: flex; align-items: center; justify-content: center; gap: 20px; padding: 20px 0; margin-top: 20px; border-top: 1px solid #e0e0e0;">
+            <span style="font-size: 14px; color: #666; margin-right: 8px;">How's your experience?</span>
+            <a href="https://forms.office.com/r/inXiycfTv1" target="_blank" title="Good experience" style="text-decoration: none; font-size: 32px; line-height: 1; transition: transform 0.2s; display: inline-block;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">😊</a>
+            <a href="https://forms.office.com/r/inXiycfTv1" target="_blank" title="Bad experience" style="text-decoration: none; font-size: 32px; line-height: 1; transition: transform 0.2s; display: inline-block;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">☹️</a>
+        </div>
+    </main>
+    <script src="signature_templates-p.js"></script>  <!-- Load this BEFORE editsignature.js -->
+    <script src="editsignature-p.js"></script>
+
+</body>
+</html>

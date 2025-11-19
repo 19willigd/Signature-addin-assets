@@ -1,0 +1,717 @@
+// editsignature.js - Manage signature page logic
+
+Office.initialize = function (reason) {
+    console.log("Edit signature page initialized");
+};
+
+let userData = null;
+let selectedTemplate = "A";
+let isContractor = false;
+
+/**
+ * Contractor Company Website Mappings
+ * Maps Azure AD company names to their website URLs
+ * NOTE: Company names must match EXACTLY as they appear in Azure AD
+ * Use /api/contractor-companies endpoint to see actual names
+ */
+const CONTRACTOR_COMPANY_WEBSITES = {
+    // Your Known Contractors
+    'Bucher & Christian Consulting Inc': 'www.bcforward.com',
+    'BC Forward': 'www.bcforward.com',
+    'Microsoft': 'www.microsoft.com',
+    'TCS': 'www.tcs.com',
+    'Tata Consultancy Services': 'www.tcs.com',
+    'Indegene': 'www.indegene.com',
+    'CBRE': 'www.cbre.com',
+    'AVI-SPL': 'www.avispl.com',
+    'Markey\'s': 'www.markeys.com',
+    'Markeys': 'www.markeys.com',
+    'Anixter': 'www.anixter.com',
+    'Accenture': 'www.accenture.com',
+    'Adecco': 'www.adecco.com',
+    'ABB Industrial Services': 'global.abb',
+    'ABB': 'global.abb',
+    'Acuren Inspection': 'www.acuren.com',
+    'Acuren': 'www.acuren.com',
+    'Agilent': 'www.agilent.com',
+    'Atlas Copco': 'www.atlascopco.com',
+    'Bruker': 'www.bruker.com',
+    'Honeywell': 'www.honeywell.com',
+    'Thermo Scientific': 'www.thermofisher.com',
+    'Thermo Fisher Scientific': 'www.thermofisher.com',
+    'Cognizant': 'www.cognizant.com',
+    'Nagarro': 'www.nagarro.com',
+    'Grantek': 'www.grantek.com',
+    'Sequence': 'www.sequenceinc.com',
+    'Skellig': 'www.skellig.com'
+};
+
+/**
+ * Get website URL for a contractor company
+ */
+function getContractorWebsite(companyName) {
+    if (!companyName) return '';
+    
+    // Try exact match
+    if (CONTRACTOR_COMPANY_WEBSITES[companyName]) {
+        return CONTRACTOR_COMPANY_WEBSITES[companyName];
+    }
+    
+    // Try case-insensitive match
+    const lowerCompanyName = companyName.toLowerCase();
+    for (const [key, value] of Object.entries(CONTRACTOR_COMPANY_WEBSITES)) {
+        if (key.toLowerCase() === lowerCompanyName) {
+            return value;
+        }
+    }
+    
+    // Try partial match
+    for (const [key, value] of Object.entries(CONTRACTOR_COMPANY_WEBSITES)) {
+        if (lowerCompanyName.includes(key.toLowerCase()) || key.toLowerCase().includes(lowerCompanyName)) {
+            return value;
+        }
+    }
+    
+    return '';
+}
+
+Office.onReady(function() {
+    console.log("Office.js ready - loading edit signature page");
+    loadAndDisplayUserInfo();
+    
+    // Hidden keyboard shortcut: Ctrl+Shift+D to toggle Clear Cache button
+    document.addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+            e.preventDefault();
+            const btn = document.getElementById('clearCacheButton');
+            if (btn) {
+                btn.style.display = btn.style.display === 'none' ? 'inline-flex' : 'none';
+                console.log('Debug mode:', btn.style.display === 'none' ? 'OFF' : 'ON');
+            }
+        }
+    });
+});
+
+/**
+ * Load user info from existing storage
+ */
+function loadAndDisplayUserInfo() {
+    // Use your existing storage keys
+    let user_info_str = localStorage.getItem('lilly_user_info') || 
+                        Office.context.roamingSettings.get('lilly_user_info');
+    
+    if (!user_info_str) {
+        console.log("No user info found - fetching from Graph API...");
+        fetchFromGraphAPI();
+        return;
+    }
+    
+    userData = JSON.parse(user_info_str);
+    console.log("Loaded user data:", userData);
+    
+    // MIGRATE OLD FIELD NAMES to new ones
+    if (userData.mobile && !userData.mobilePhone) {
+        console.log("� Migrating 'mobile' → 'mobilePhone'");
+        userData.mobilePhone = userData.mobile;
+        delete userData.mobile;
+    }
+    if (userData.location && !userData.officeLocation) {
+        console.log("� Migrating 'location' → 'officeLocation'");
+        userData.officeLocation = userData.location;
+        delete userData.location;
+    }
+    if (userData.pronouns && !userData.pronoun) {
+        console.log("🔄 Migrating 'pronouns' → 'pronoun'");
+        userData.pronoun = userData.pronouns;
+        delete userData.pronouns;
+    }
+    
+    console.log("✓ After migration - mobilePhone:", userData.mobilePhone);
+    console.log("✓ After migration - officeLocation:", userData.officeLocation);
+    console.log("✓ After migration - pronoun:", userData.pronoun);
+    
+    // Save migrated data back to storage
+    localStorage.setItem('lilly_user_info', JSON.stringify(userData));
+    Office.context.roamingSettings.set('lilly_user_info', JSON.stringify(userData));
+    Office.context.roamingSettings.saveAsync();
+    
+    // Determine user type FIRST (before setting website)
+    determineUserType();
+    
+    // Display read-only fields (website will now be set correctly)
+    populateReadOnlyFields();
+    
+    // Load saved preferences
+    loadSavedPreferences();
+    
+    // Show templates
+    renderTemplateOptions();
+    
+    // Generate preview
+    updatePreview();
+}
+
+/**
+ * Fetch from Graph API if no cached data
+ */
+async function fetchFromGraphAPI() {
+    try {
+        const userEmail = Office.context.mailbox.userProfile.emailAddress;
+        // GitHub Pages deployment - always use CATS backend
+        const API_BASE_URL = 'https://lilly-signature-addin.dc.lilly.com';
+        
+        const response = await fetch(`${API_BASE_URL}/signature?email=${encodeURIComponent(userEmail)}`);
+        
+        if (!response.ok) throw new Error('Failed to fetch');
+        
+        const graphData = await response.json();
+        
+        // Convert to your internal format - USE GRAPH API FIELD NAMES
+        userData = {
+            name: graphData.displayName || '',
+            email: graphData.mail || graphData.userPrincipalName || '',
+            jobTitle: graphData.jobTitle || '',
+            department: graphData.department || '',
+            functionalArea: graphData.companyName || '',
+            companyName: graphData.companyName || null,
+            mobilePhone: graphData.mobilePhone || '',
+            officePhone: (graphData.businessPhones && graphData.businessPhones[0]) || '',
+            country: graphData.country || '',
+            officeLocation: graphData.officeLocation || '',
+            pronoun: '',
+            pronunciation: '',
+            companyWebsite: '' // Will be set based on user type
+        };
+        
+        // Save to storage with timestamp
+        localStorage.setItem('lilly_user_info', JSON.stringify(userData));
+        Office.context.roamingSettings.set('lilly_user_info', JSON.stringify(userData));
+        Office.context.roamingSettings.set('user_info_cache', JSON.stringify(userData));
+        Office.context.roamingSettings.set('user_info_timestamp', Date.now());
+        console.log("✓ Saved to storage with timestamp:", Date.now());
+        Office.context.roamingSettings.saveAsync();
+        
+        // Display
+        populateReadOnlyFields();
+        loadSavedPreferences();
+        determineUserType();
+        renderTemplateOptions();
+        updatePreview();
+        
+    } catch (error) {
+        console.error("Failed to fetch from Graph API:", error);
+        showError("Could not load your information. Please try again.");
+    }
+}
+
+/**
+ * Populate read-only display fields
+ */
+function populateReadOnlyFields() {
+    populateField('display_name_readonly', userData.name);
+    populateField('email_readonly', userData.email);
+    populateField('job_title_readonly', userData.jobTitle);
+    populateField('department_readonly', userData.department);
+    populateField('office_phone_readonly', userData.officePhone, 'officePhoneAction');
+    populateField('mobile_readonly', userData.mobilePhone, 'mobilePhoneAction');
+    populateField('location_readonly', userData.officeLocation, 'locationAction');
+    
+    // Company website - set based on user type
+    if (!userData.companyWebsite) {
+        userData.companyWebsite = getDefaultWebsite();
+    }
+    populateField('website_readonly', userData.companyWebsite);
+}
+
+/**
+ * Get default website based on user type
+ */
+function getDefaultWebsite() {
+    // For contractors, try to auto-map from company name
+    if (isContractor) {
+        const website = getContractorWebsite(userData.functionalArea);
+        if (website) {
+            console.log('✓ Auto-mapped contractor website:', website);
+        }
+        return website || ''; // Return empty if no mapping found
+    }
+    
+    // For employees, determine Lilly website based on country
+    const country = (userData.country || '').toLowerCase();
+    
+    // Country-specific Lilly websites
+    const countryWebsites = {
+        'united states': 'www.lilly.com',
+        'usa': 'www.lilly.com',
+        'us': 'www.lilly.com',
+        'canada': 'www.lilly.ca',
+        'united kingdom': 'www.lilly.co.uk',
+        'uk': 'www.lilly.co.uk',
+        'germany': 'www.lilly.de',
+        'france': 'www.lilly.fr',
+        'spain': 'www.lilly.es',
+        'italy': 'www.lilly.it',
+        'japan': 'www.lilly.co.jp',
+        'china': 'www.lilly.com.cn',
+        'australia': 'www.lilly.com.au',
+        'brazil': 'www.lilly.com.br',
+        'mexico': 'www.lilly.com.mx',
+        'india': 'www.lilly.com/in'
+    };
+    
+    return countryWebsites[country] || 'www.lilly.com'; // Default to .com
+}
+
+/**
+ * Populate a single field
+ */
+function populateField(elementId, value, actionId) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    if (value && value.trim() !== "") {
+        element.textContent = value;
+        element.classList.remove('empty');
+    } else {
+        element.innerHTML = '<span style="color: #9ca3af; font-style: italic;">Not provided</span>';
+        element.classList.add('empty');
+        
+        // Show "Update in Workday" link if field has an action
+        if (actionId) {
+            const actionElement = document.getElementById(actionId);
+            if (actionElement) actionElement.style.display = 'block';
+        }
+    }
+}
+
+/**
+ * Load saved pronouns/pronunciation/template
+ */
+function loadSavedPreferences() {
+    const pronounsEl = document.getElementById('pronouns');
+    const pronunciationEl = document.getElementById('pronunciation');
+    
+    if (userData.pronoun && pronounsEl) {
+        pronounsEl.value = userData.pronoun;
+    }
+    
+    if (userData.pronunciation && pronunciationEl) {
+        pronunciationEl.value = userData.pronunciation;
+    }
+    
+    // Load saved template choice
+    const savedTemplate = Office.context.roamingSettings.get("lilly_newMail") || 
+                         Office.context.roamingSettings.get("newMail");
+    if (savedTemplate) {
+        selectedTemplate = savedTemplate;
+    }
+}
+
+/**
+ * Determine if contractor or employee
+ */
+function determineUserType() {
+    // Check if functionalArea has company name (contractor indicator)
+    isContractor = userData.functionalArea && 
+                   userData.functionalArea.trim() !== "" &&
+                   userData.functionalArea.toLowerCase() !== "eli lilly" &&
+                   userData.functionalArea.toLowerCase() !== "lilly";
+    
+    if (isContractor) {
+        console.log("🔒 User is contractor:", userData.functionalArea);
+        selectedTemplate = "C";
+        
+        // Re-set the website for contractor after simulation
+        userData.companyWebsite = getDefaultWebsite();
+        console.log("🌐 Contractor website set to:", userData.companyWebsite);
+    } else {
+        console.log("✓ User is employee");
+    }
+}
+
+/**
+ * Render template choice UI
+ */
+function renderTemplateOptions() {
+    const templateSection = document.getElementById('templateSection');
+    const templateOptions = document.getElementById('templateOptions');
+    const websiteEditField = document.getElementById('websiteEditField');
+    const websiteCard = document.getElementById('websiteCard');
+    
+    if (!templateSection || !templateOptions) return;
+    
+    if (isContractor) {
+        // Show editable website field for contractors
+        if (websiteEditField) {
+            websiteEditField.style.display = 'block';
+            const websiteInput = document.getElementById('company_website');
+            if (websiteInput) {
+                websiteInput.value = userData.companyWebsite || '';
+            }
+        }
+        
+        // Hide the read-only website card for contractors
+        if (websiteCard) websiteCard.style.display = 'none';
+        
+        // Hide entire template section for contractors
+        if (templateSection) templateSection.style.display = 'none';
+    } else {
+        // Hide website edit field for employees
+        if (websiteEditField) websiteEditField.style.display = 'none';
+        
+        // Show read-only website card for employees
+        if (websiteCard) websiteCard.style.display = 'block';
+        
+        // Show A and B choices for employees - Clean, minimal design
+        templateOptions.innerHTML = `
+            <div class="template-card ${selectedTemplate === 'A' ? 'active' : ''}" onclick="selectTemplate('A')">
+                <div class="template-card-content">
+                    <svg class="template-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2"/>
+                        <circle cx="8.5" cy="8.5" r="1.5"/>
+                        <path d="M21 15l-5-5L5 21"/>
+                    </svg>
+                    <div class="template-text">
+                        <h3>With Logo</h3>
+                        <p>Full branded signature with Lilly logo</p>
+                    </div>
+                    <div class="template-checkmark">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="template-card ${selectedTemplate === 'B' ? 'active' : ''}" onclick="selectTemplate('B')">
+                <div class="template-card-content">
+                    <svg class="template-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 7h16M4 12h16M4 17h10"/>
+                    </svg>
+                    <div class="template-text">
+                        <h3>Text Only</h3>
+                        <p>Clean text signature without logo</p>
+                    </div>
+                    <div class="template-checkmark">
+                        <svg viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Select template
+ */
+function selectTemplate(template) {
+    if (isContractor) return;
+    
+    selectedTemplate = template;
+    renderTemplateOptions();
+    updatePreview();
+}
+
+/**
+ * Update live preview
+ */
+function updatePreview() {
+    const pronounsEl = document.getElementById('pronouns');
+    const pronunciationEl = document.getElementById('pronunciation');
+    const websiteEl = document.getElementById('company_website');
+    const previewEl = document.getElementById('signaturePreview');
+    
+    if (!previewEl) return;
+    
+    // Update userData with current form values
+    if (pronounsEl) userData.pronoun = pronounsEl.value;
+    if (pronunciationEl) userData.pronunciation = pronunciationEl.value;
+    if (isContractor && websiteEl) userData.companyWebsite = websiteEl.value;
+    
+    // Generate full signature using your existing template functions
+    let signatureHTML = '';
+    
+    if (selectedTemplate === 'A') {
+        signatureHTML = get_template_A_str(userData);
+    } else if (selectedTemplate === 'B') {
+        signatureHTML = get_template_B_str(userData);
+    } else if (selectedTemplate === 'C') {
+        signatureHTML = get_template_C_str(userData);
+    }
+    
+    previewEl.innerHTML = signatureHTML;
+}
+
+/**
+ * Save signature settings
+ */
+/**
+ * Clear all caches and reload data from Graph API
+ */
+function clearCache() {
+    console.log("🗑️ Clearing all caches...");
+    
+    const clearButton = document.getElementById('clearCacheButton');
+    const originalHTML = clearButton.innerHTML;
+    
+    // Show loading
+    clearButton.disabled = true;
+    clearButton.innerHTML = `
+        <svg class="btn-icon btn-icon-spinner" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+        </svg>
+        <span class="btn-text">Clearing...</span>
+    `;
+    
+    try {
+        // Clear sessionStorage
+        if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.removeItem('user_info_session_cache');
+            console.log("✓ Cleared sessionStorage");
+        }
+        
+        // Clear roamingSettings
+        Office.context.roamingSettings.remove('user_info_cache');
+        Office.context.roamingSettings.remove('user_info_timestamp');
+        Office.context.roamingSettings.remove('lilly_user_info');
+        Office.context.roamingSettings.remove('user_info');
+        
+        Office.context.roamingSettings.saveAsync(function(result) {
+            if (result.status === Office.AsyncResultStatus.Succeeded) {
+                console.log("✓ Cleared roamingSettings");
+                
+                // Update button to show success
+                clearButton.innerHTML = `
+                    <svg class="btn-icon" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="btn-text">Cache Cleared!</span>
+                `;
+                
+                // Reload page after 1 second to fetch fresh data
+                setTimeout(() => {
+                    location.reload();
+                }, 1000);
+            } else {
+                console.error("✗ Failed to clear roamingSettings:", result.error);
+                clearButton.disabled = false;
+                clearButton.innerHTML = originalHTML;
+                alert('Failed to clear cache. Please try again.');
+            }
+        });
+    } catch (error) {
+        console.error("Error clearing cache:", error);
+        clearButton.disabled = false;
+        clearButton.innerHTML = originalHTML;
+        alert('Error clearing cache: ' + error.message);
+    }
+}
+
+function saveSignature() {
+    const saveButton = document.getElementById('saveButton');
+    const originalHTML = saveButton.innerHTML;
+    
+    // Show loading
+    saveButton.disabled = true;
+    saveButton.innerHTML = `
+        <svg class="btn-icon btn-icon-spinner" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+        </svg>
+        <span class="btn-text">Saving...</span>
+    `;
+    
+    // Update userData
+    const pronounsEl = document.getElementById('pronouns');
+    const pronunciationEl = document.getElementById('pronunciation');
+    const websiteEl = document.getElementById('company_website');
+    
+    if (pronounsEl) userData.pronoun = pronounsEl.value;
+    if (pronunciationEl) userData.pronunciation = pronunciationEl.value;
+    
+    // Save company website for contractors
+    if (isContractor && websiteEl) {
+        userData.companyWebsite = websiteEl.value;
+    }
+    
+    // Save to storage (both formats for compatibility)
+    localStorage.setItem('lilly_user_info', JSON.stringify(userData));
+    Office.context.roamingSettings.set('lilly_user_info', JSON.stringify(userData));
+    
+    // UPDATE OLD CACHE KEYS (don't remove them - update with current data)
+    // This keeps autorunshared.js from fetching from Graph API again
+    Office.context.roamingSettings.set('user_info_cache', JSON.stringify(userData));
+    Office.context.roamingSettings.set('user_info_timestamp', Date.now());
+    console.log("✓ Updated cache keys with saved data");
+    
+    // Save template assignments
+    Office.context.roamingSettings.set('lilly_newMail', selectedTemplate);
+    Office.context.roamingSettings.set('lilly_reply', selectedTemplate);
+    Office.context.roamingSettings.set('lilly_forward', selectedTemplate);
+    
+    // Old format for backward compatibility
+    Office.context.roamingSettings.set('newMail', selectedTemplate);
+    Office.context.roamingSettings.set('reply', selectedTemplate);
+    Office.context.roamingSettings.set('forward', selectedTemplate);
+    
+    Office.context.roamingSettings.saveAsync(function(result) {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+            // Update sessionStorage with saved data (for OWA page reloads)
+            if (typeof sessionStorage !== 'undefined') {
+                try {
+                    // Create cache object with template preferences
+                    const cacheData = {
+                        user_info: userData,
+                        template: selectedTemplate,
+                        timestamp: new Date().toISOString()
+                    };
+                    sessionStorage.setItem('user_info_session_cache', JSON.stringify(cacheData));
+                    console.log("✓ Updated sessionStorage cache with saved preferences");
+                } catch(e) {
+                    console.warn("Could not update session cache:", e);
+                }
+            }
+            
+            // Update the signature in the current draft (if it's a compose window)
+            try {
+                if (Office.context.mailbox.item && Office.context.mailbox.item.itemType === Office.MailboxEnums.ItemType.Message) {
+                    // Generate the signature HTML based on selected template
+                    let signatureHTML = '';
+                    
+                    // Use the template functions from signature_templates.js
+                    if (typeof get_template_A_str !== 'undefined') {
+                        if (selectedTemplate === 'A') {
+                            signatureHTML = get_template_A_str(userData);
+                        } else if (selectedTemplate === 'B') {
+                            signatureHTML = get_template_B_str(userData);
+                        } else if (selectedTemplate === 'C') {
+                            signatureHTML = get_template_C_str(userData);
+                        }
+                        
+                        // Update the signature in the current draft
+                        Office.context.mailbox.item.body.setSignatureAsync(
+                            signatureHTML,
+                            { coercionType: Office.CoercionType.Html },
+                            function(asyncResult) {
+                                if (asyncResult.status === Office.AsyncResultStatus.Succeeded) {
+                                    console.log("✓ Current draft signature updated");
+                                } else {
+                                    console.warn("Could not update current draft:", asyncResult.error);
+                                }
+                            }
+                        );
+                    }
+                }
+            } catch(updateError) {
+                console.warn("Could not update current draft signature:", updateError);
+            }
+            
+            saveButton.disabled = false;
+            saveButton.innerHTML = originalHTML;
+            showSuccess("✓ Signature saved and applied to current draft!");
+            
+            // Scroll to make success message visible
+            const statusEl = document.getElementById('statusMessage');
+            if (statusEl) {
+                statusEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        } else {
+            saveButton.disabled = false;
+            saveButton.innerHTML = originalHTML;
+            showError("Failed to save. Please try again.");
+        }
+    });
+}
+
+/**
+ * Show success message
+ */
+function showSuccess(message) {
+    const statusEl = document.getElementById('statusMessage');
+    const textEl = document.getElementById('statusText');
+    
+    if (statusEl && textEl) {
+        statusEl.className = 'status-message success';
+        textEl.textContent = message;
+        statusEl.style.display = 'flex';
+        
+        setTimeout(() => {
+            statusEl.style.display = 'none';
+        }, 5000);
+    }
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+    const statusEl = document.getElementById('statusMessage');
+    const textEl = document.getElementById('statusText');
+    
+    if (statusEl && textEl) {
+        statusEl.className = 'status-message error';
+        textEl.textContent = message;
+        statusEl.style.display = 'flex';
+    }
+}
+
+/**
+ * Show Workday info
+ */
+function showWorkdayLinks() {
+    alert("To update your job title, contact HR.\n\nOther fields can be updated in Workday - see links below each field.");
+}
+
+/**
+ * Copy signature to clipboard
+ */
+function copySignature() {
+    const previewEl = document.getElementById('signaturePreview');
+    const copyBtn = document.getElementById('copyButton');
+    
+    if (!previewEl) return;
+    
+    // Get the HTML content
+    const signatureHTML = previewEl.innerHTML;
+    
+    // Create a temporary element to copy from
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = signatureHTML;
+    document.body.appendChild(tempDiv);
+    
+    try {
+        // Select the content
+        const range = document.createRange();
+        range.selectNode(tempDiv);
+        window.getSelection().removeAllRanges();
+        window.getSelection().addRange(range);
+        
+        // Copy to clipboard
+        document.execCommand('copy');
+        
+        // Update button to show success
+        if (copyBtn) {
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.classList.add('copied');
+            copyBtn.innerHTML = `
+                <svg viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                <span>Copied!</span>
+            `;
+            
+            setTimeout(() => {
+                copyBtn.classList.remove('copied');
+                copyBtn.innerHTML = originalHTML;
+            }, 2000);
+        }
+        
+        window.getSelection().removeAllRanges();
+    } catch (err) {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy signature. Please try selecting and copying manually.');
+    } finally {
+        document.body.removeChild(tempDiv);
+    }
+}
