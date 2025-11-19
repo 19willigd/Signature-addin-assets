@@ -194,6 +194,7 @@ function fetchUserDataAndInsert(user_email, user_displayName, eventObj) {
   // Fetch user data from Graph API
   var xhr = new XMLHttpRequest();
   xhr.open('GET', API_BASE_URL + '/signature?email=' + user_email, true);
+  xhr.withCredentials = true; // Send authentication cookies
   
   xhr.onload = function() {
     var user_info;
