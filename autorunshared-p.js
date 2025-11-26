@@ -67,6 +67,10 @@ function checkSignature(eventObj) {
   let user_email = Office.context.mailbox.userProfile.emailAddress;
   let user_displayName = Office.context.mailbox.userProfile.displayName;
   
+  console.log("\n🚀 ═══════════════════════════════════════════════════");
+  console.log("🚀 AUTORUN TRIGGERED!");
+  console.log("🚀 ═══════════════════════════════════════════════════");
+  
   // TEMPORARY HARDCODE: Map mailbox emails to actual user account emails
   const EMAIL_MAPPING = {
     'AM_New_Outlook_2025@lilly.com': 'AM_New_Outlook_2025@elililly.onmicrosoft.com'
@@ -630,8 +634,10 @@ console.log("══════════════════════�
 
 // Only associate if not already associated (prevents duplicate registration)
 try {
+  console.log("🔧 Attempting to register autorun action 'checkSignature'...");
   Office.actions.associate("checkSignature", checkSignature);
+  console.log("✅ Autorun action 'checkSignature' registered successfully!");
+  console.log("   Autorun will trigger on new message compose events.");
 } catch(e) {
-  // Already registered, ignore
-  console.log("checkSignature already registered (this is OK)");
+  console.log("⚠️ checkSignature already registered (this is OK):", e.message);
 }
