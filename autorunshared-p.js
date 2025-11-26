@@ -64,6 +64,18 @@ const FALLBACK_USER_INFO = {
  * @param {*} eventObj Office event object
  */
 function checkSignature(eventObj) {
+  // VISIBLE DEBUG: Alert to confirm autorun is triggering
+  try {
+    Office.context.mailbox.item.notificationMessages.addAsync("autorun-test", {
+      type: "informationalMessage",
+      message: "🚀 Autorun triggered! GitHub Pages working!",
+      icon: "icon1",
+      persistent: false
+    });
+  } catch(e) {
+    // Notification failed, continue anyway
+  }
+  
   let user_email = Office.context.mailbox.userProfile.emailAddress;
   let user_displayName = Office.context.mailbox.userProfile.displayName;
   
