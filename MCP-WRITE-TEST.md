@@ -8,4 +8,7 @@ This file was created by an agent via the connector write path.
 - Branch: mcp-test-head
 - Scope: dev validation only, no business or patient data
 
+## Update log
+- v2: updated in place using the prior blob SHA, proving optimistic-concurrency updates work.
+
 Safe to delete.
