@@ -1,0 +1,3 @@
+Test file B - pushed in the SAME commit as file A.
+Proves batched multi-file write in one commit.
+COCO-16138 dev test. Safe to delete.
