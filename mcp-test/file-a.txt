@@ -1,2 +1,0 @@
-Test file A - multi-file atomic commit validation.
-COCO-16138 dev test. Safe to delete.
